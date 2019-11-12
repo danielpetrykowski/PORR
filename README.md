@@ -12,24 +12,25 @@
 Co do spraw technicznych: profesorka rekomenduje pisanie w C, bo to sprawdzona metoda i ponoć bezpieczna, ale powiedziała, że jak się bardzo uprzemy, to Python i ew. Java też mogą być.
 
 2. Generownanie sieci za pomocą Pajek [Pajkek do ściągnięcia - http://mrvar.fdv.uni-lj.si/pajek/]
+
 Stworzenie sieci:
-Network -> Create New Network -> Complete Network -> Undirected
+ - Network -> Create New Network -> Complete Network -> Undirected
 
 Nadanie losowych wartości krawędzią:
-Partition -> Create Random Partition -> 1-Mode
-	Wybierz ile w sieci ma być róznych wartości odległości
-Partition -> Copy to Vector
-Operations -> Network + Vector -> Transform -> "Vector(s) -> Line values" -> Multiply
+ - Partition -> Create Random Partition -> 1-Mode
+	(Wybierz ile w sieci ma być róznych wartości odległości)
+ - Partition -> Copy to Vector
+ - Operations -> Network + Vector -> Transform -> "Vector(s) -> Line values" -> Multiply
 
 Save:
-File -> Save -> [Zapisz jako typ: Pajek Valued Matrix]
+ - File -> Save -> [Zapisz jako typ: Pajek Valued Matrix]
 
 
 3. Linki 
  - Algorytm który został zadaptowany w orginale znajdziecie:
-	http://deerishi.github.io/tsp-using-simulated-annealing-c-/
+	- http://deerishi.github.io/tsp-using-simulated-annealing-c-/
  - Inne przydatne strony z algorytmami i kodem dotyczącymi symulownego wyrzażania:
-	https://github.com/arjun-krishna/TSP
-	https://codereview.stackexchange.com/questions/70310/simple-simulated-annealing-template-in-c11
+	- https://github.com/arjun-krishna/TSP
+	- https://codereview.stackexchange.com/questions/70310/simple-simulated-annealing-template-in-c11
  - Jakaś praca magisterska na temat cyklów Hamiltona w grafach (przystępnie też opisuje algorytm symulowanego wyrzażania):
-	http://users.uj.edu.pl/~ufkapano/download/Piotr_Szestalo_2015.pdf
+	- http://users.uj.edu.pl/~ufkapano/download/Piotr_Szestalo_2015.pdf
