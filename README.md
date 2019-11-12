@@ -26,10 +26,10 @@ File -> Save -> [Zapisz jako typ: Pajek Valued Matrix]
 
 
 3. Linki 
-Algorytm który został zadaptowany w orginale znajdziecie:
-http://deerishi.github.io/tsp-using-simulated-annealing-c-/
-Inne przydatne strony z algorytmami i kodem dotyczącymi symulownego wyrzażania:
-https://github.com/arjun-krishna/TSP
-https://codereview.stackexchange.com/questions/70310/simple-simulated-annealing-template-in-c11
-Jakaś praca magisterska na temat cyklów Hamiltona w grafach (przystępnie też opisuje algorytm symulowanego wyrzażania):
-http://users.uj.edu.pl/~ufkapano/download/Piotr_Szestalo_2015.pdf
+ - Algorytm który został zadaptowany w orginale znajdziecie:
+	http://deerishi.github.io/tsp-using-simulated-annealing-c-/
+ - Inne przydatne strony z algorytmami i kodem dotyczącymi symulownego wyrzażania:
+	https://github.com/arjun-krishna/TSP
+	https://codereview.stackexchange.com/questions/70310/simple-simulated-annealing-template-in-c11
+ - Jakaś praca magisterska na temat cyklów Hamiltona w grafach (przystępnie też opisuje algorytm symulowanego wyrzażania):
+	http://users.uj.edu.pl/~ufkapano/download/Piotr_Szestalo_2015.pdf
