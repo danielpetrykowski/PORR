@@ -1,0 +1,13 @@
+# depslib dependency file v1.0
+1573587141 source:d:\danielpetrykowski\documents\studia\porr\simulatedannealing\main.cpp
+	<iostream>
+	<vector>
+	<string>
+	<cstdlib>
+	<fstream>
+	<math.h>
+	<random>
+	<sstream>
+	<algorithm>
+	<chrono>
+
