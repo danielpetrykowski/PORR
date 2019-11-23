@@ -9,6 +9,9 @@
 #include <algorithm>
 #include <chrono>
 #include <windows.h>
+#include <climits>
+#include <omp.h>
+
 
 
 using namespace std;
@@ -111,7 +114,7 @@ int getTourLength() //This function returns the tour length of the current order
 
     it=cities.begin();
     int pcity1=*it,ncity;
-    cout<<"\n the pcity is "<<pcity1<<"\n";
+   // cout<<"\n the pcity is "<<pcity1<<"\n";
     int tourLength=distance(0,pcity1);
     for(it=cities.begin()+1;it!=cities.end();it++)
     {
@@ -184,6 +187,7 @@ double getProbability(int difference,double temperature) //This function finds t
 
 int main()
 {
+    int rs;
     vector<int>::iterator it,it2;
     LARGE_INTEGER freq, start, end;
     vector<string> lines = readFileToArrayLines();
@@ -201,7 +205,7 @@ int main()
 
     int mini=INT_MAX;
     if(mini > bestTourLength ) mini=bestTourLength;
-    double temperature,coolingRate=0.9,absoluteTemperature=0.00001,probability;
+    double temperature,coolingRate=0.9,absoluteTemperature=0.00001;
     int position1=0,position2=0;
     int newTourLength,difference;
     std::fstream fs;
@@ -210,15 +214,20 @@ int main()
 
     QueryPerformanceFrequency(&freq);
     QueryPerformanceCounter(&start);
-    for(int rs=0;rs<numberVertics*(numberVertics-1);rs++)
+
+   // #pragma omp parallel for shared(bestTourLength, numberVertics, coolingRate) private(rs, temperature, newTourLength, mini, absoluteTemperature, position1, position2)
+    for(rs=0;rs<numberVertics*(numberVertics-1);rs++)
     {
+      //  cout << "liczba watkow" << omp_get_num_threads();
         temperature=99999999999999999999999999999999999999999.0; //Initial Temperature
         //cout<<"doing rs "<<rs<<"\n";
         fs<<"[";
+
+        #pragma omp parallel shared(bestTourLength, numberVertics, coolingRate)  private(temperature, newTourLength, mini, absoluteTemperature, position1, position2)
         while(temperature > absoluteTemperature)
         {
             //cout<<"hi";
-
+            cout << "liczba watkow" << omp_get_num_threads();
 
             position1=int(getRandomNumber(0,numberVertics-1));
             position2=int(getRandomNumber(0,numberVertics-1));
@@ -236,7 +245,7 @@ int main()
             newTourLength=getTourLength();
             if(mini > newTourLength ) mini=newTourLength;
             fs<<newTourLength<<",";
-            cout<<"current tour length is "<<newTourLength<<" n bestTourLength is "<<bestTourLength<<"\n\n";
+            //cout<<"current tour length is "<<newTourLength<<" n bestTourLength is "<<bestTourLength<<"\n\n";
             difference=newTourLength-bestTourLength;
 
             if(difference <0 or (difference >0 and  getProbability(difference,temperature) > getRandomNumber(0,1)))

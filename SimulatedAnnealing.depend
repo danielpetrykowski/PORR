@@ -11,7 +11,7 @@
 	<algorithm>
 	<chrono>
 
-1574504068 source:d:\danielpetrykowski\documents\studia\porr\porr\main.cpp
+1574519079 source:d:\danielpetrykowski\documents\studia\porr\porr\main.cpp
 	<iostream>
 	<vector>
 	<string>
@@ -22,5 +22,7 @@
 	<sstream>
 	<algorithm>
 	<chrono>
-	<dirent.h>
+	<windows.h>
+	<climits>
+	<omp.h>
 
