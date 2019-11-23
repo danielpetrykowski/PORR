@@ -8,6 +8,7 @@
 #include <sstream>
 #include <algorithm>
 #include <chrono>
+#include <windows.h>
 
 
 using namespace std;
@@ -24,7 +25,7 @@ int *arr;// arr is the array that stores the City order
         // Read file
         vector<string> lines;
         fstream file;
-        file.open("net1.mat", ios::in);
+        file.open("./netTest/net1.mat", ios::in);
         if (file.is_open()){
             string tp;
             while(getline(file, tp)){
@@ -184,6 +185,7 @@ double getProbability(int difference,double temperature) //This function finds t
 int main()
 {
     vector<int>::iterator it,it2;
+    LARGE_INTEGER freq, start, end;
     vector<string> lines = readFileToArrayLines();
     numberVertics = numberVerticsFromArrayLines(lines);
 
@@ -205,7 +207,10 @@ int main()
     std::fstream fs;
     fs.open ("tspResults.txt", std::fstream::in | std::fstream::out );
 
-    for(int rs=0;rs<100;rs++)
+
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&start);
+    for(int rs=0;rs<numberVertics*(numberVertics-1);rs++)
     {
         temperature=99999999999999999999999999999999999999999.0; //Initial Temperature
         //cout<<"doing rs "<<rs<<"\n";
@@ -251,6 +256,10 @@ int main()
         random_shuffle(cities.begin(),cities.end());
         //cout<<"the best solution is "<<bestTourLength<<"\n";
       }
+      QueryPerformanceCounter(&end);
+      double durationInSeconds = static_cast<double>(end.QuadPart - start.QuadPart) / freq.QuadPart;
+
+    cout<<durationInSeconds << "\n";
       fs.close();
     cout<<"the best solution is "<<bestTourLength<<"\n";
     cout<<" the minimum solution found is  "<<mini<<"\n";
