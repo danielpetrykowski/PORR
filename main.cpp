@@ -184,7 +184,6 @@ double GetProbability(int difference,double temperature) //This function finds t
 
 void PrintPath(vector<int> path)
 {
-    cout << "The best path found:\n";
     int length = path.size();
     for(int i = 0; i<length; i++)
     {
@@ -240,7 +239,7 @@ int main()
         #pragma omp single
         {
 
-            printf("Program jest wykonywany na %d watkach.\n",
+            printf("Program is executed on %d threads.\n",
                    omp_get_num_threads());
             QueryPerformanceFrequency(&freq);
             QueryPerformanceCounter(&start);
@@ -296,6 +295,7 @@ int main()
 
     cout<<"Processing time " << durationInSeconds <<"\n";
     cout<<"The best solution is "<<bestTourLength<<"\n";
+    cout << "The best path found:\n";
     PrintPath(finalOrder);
     cout<<"The minimum solution found is  "<<mini<<"\n";
     return 0;
