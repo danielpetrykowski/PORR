@@ -1,9 +1,6 @@
 #include <iostream>
 #include <vector>
-#include <string>
-#include <cstdlib>
 #include <fstream>
-#include <math.h>
 #include <random>
 #include <sstream>
 #include <algorithm>
@@ -12,157 +9,157 @@
 #include <climits>
 #include <omp.h>
 
-
-
 using namespace std;
 
 int** graph;
 int numberVertics;
-vector<int> cities;
+vector<int> citiesOrder;
 vector<int> finalOrder;
 int *arr;// arr is the array that stores the City order
 
-//wczytanie grafu
+//Functions
+vector<string> ReadFileToArrayLines();
+int NumberVerticsFromArrayLines(vector<string> lines);
+void ReadMatrix(vector<string> lines);
+int Distance(int city1,int city2);
+void SwapArr(int i,int j);
+int GetTourLength(vector<int> cities);
+void InitNearestNeighbourTour();
+double GetRandomNumber(double i,double j);
+void SwapForVector(int i,int j, vector<int> cities);
+double GetProbability(int difference,double temperature);
+void PrintPath(vector<int> path);
 
-    vector<string> readFileToArrayLines(){
-        // Read file
-        vector<string> lines;
-        fstream file;
-        file.open("./netTest/net1.mat", ios::in);
-        if (file.is_open()){
-            string tp;
-            while(getline(file, tp)){
-                lines.push_back(tp);
-            }
-            file.close();
-        }
-        return lines;
-    }
-
-    int numberVerticsFromArrayLines(vector<string> lines){
-        vector<string> elements;
-        string element;
-
-        stringstream lineStream(lines[0]);
-        while(getline(lineStream, element, ' '))
+vector<string> ReadFileToArrayLines()
+{
+    // Read file
+    vector<string> lines;
+    fstream file;
+    file.open("./netTest/net1.mat", ios::in);
+    if (file.is_open())
+    {
+        string tp;
+        while(getline(file, tp))
         {
-            elements.push_back(element);
+            lines.push_back(tp);
         }
-        numberVertics = atoi(elements[1].c_str());
-        cout << "Number of vertices: " << numberVertics << "\n";
-        return numberVertics;
+        file.close();
     }
+    return lines;
+}
 
-    void ReadMatrix(vector<string> lines){
-        if(lines[numberVertics+1].compare("*Matrix") == 0)
+int NumberVerticsFromArrayLines(vector<string> lines)
+{
+    vector<string> elements;
+    string element;
+
+    stringstream lineStream(lines[0]);
+    while(getline(lineStream, element, ' '))
+    {
+        elements.push_back(element);
+    }
+    numberVertics = atoi(elements[1].c_str());
+    cout << "Number of vertices: " << numberVertics << "\n";
+    return numberVertics;
+}
+
+void ReadMatrix(vector<string> lines)
+{
+    if(lines[numberVertics+1].compare("*Matrix") == 0)
+    {
+        int numberLine = numberVertics + 2;
+        int row;
+
+        int i;
+        for(i=0; i<numberVertics; i++)
         {
-            int numberLine = numberVertics + 2;
-            int row;
+            cout << "\t" << i+1;
+        }
+        cout << "\n";
 
-            int i;
-            for(i=0;i<numberVertics;i++)
+        for(row = 0; row<numberVertics; row++)
+        {
+            string edgeValue;
+            int col = 0;
+
+            stringstream lineStream(lines[numberLine + row]);
+            cout << row + 1 << "\t";
+
+            while(getline(lineStream, edgeValue, ' '))
             {
-                cout << "\t" << i+1;
+                if(edgeValue.compare("") != 0)
+                {
+                    int value = atoi(edgeValue.c_str());
+                    graph[row][col] = value;
+                    cout << graph[row][col] << "\t";
+                    col ++;
+                }
             }
             cout << "\n";
-
-            for(row = 0; row<numberVertics;row++){
-                string edgeValue;
-                int col = 0;
-
-                stringstream lineStream(lines[numberLine + row]);
-                cout << row + 1 << "\t";
-
-                while(getline(lineStream, edgeValue, ' '))
-                {
-                    if(edgeValue.compare("") != 0)
-                    {
-                        int value = atoi(edgeValue.c_str());
-                        graph[row][col] = value;
-                        cout << graph[row][col] << "\t";
-                        col ++;
-                    }
-                }
-                cout << "\n";
-            }
         }
     }
+}
 
 
-int distance(int city1,int city2)
+int Distance(int city1,int city2)
 {
     return graph[city1][city2];
 }
 
-void swapArr(int i,int j)
+void SwapArr(int i,int j)
 {
     int temp=arr[i];
     arr[i]=arr[j];
     arr[j]=temp;
 }
 
-int getTourLength() //This function returns the tour length of the current order of cities
+int GetTourLength(vector<int> cities) //This function returns the tour length of the current order of cities
 {
-//    cout<<"the cuurentcities are \n";
     vector<int>:: iterator it;
-//    for(it=cities.begin();it!=cities.end();it++)
-//    {
-//        cout<<*it<<" ";
-//    }
-//    cout<<"\n";
-
 
     it=cities.begin();
-    int pcity1=*it,ncity;
-   // cout<<"\n the pcity is "<<pcity1<<"\n";
-    int tourLength=distance(0,pcity1);
-    for(it=cities.begin()+1;it!=cities.end();it++)
+    int pcity1=*it;
+    int ncity;
+    // cout<<"\n the pcity is "<<pcity1<<"\n";
+    int tourLength=Distance(0,pcity1);
+    for(it=cities.begin()+1; it!=cities.end(); it++)
     {
         ncity=*it;
-        tourLength+=distance(pcity1,ncity);
+        tourLength+=Distance(pcity1,ncity);
 
         pcity1=ncity;
     }
 
-    tourLength+=distance(pcity1,0); //adding the distance back to the source path
+    tourLength+=Distance(pcity1,0); //adding the distance back to the source path
     return tourLength;
 }
 
-int getNearestNeighbourTour() //puts the nearestNeighbourTour in the vector cities
+void InitNearestNeighbourTour() //puts the nearestNeighbourTour in the vector cities
 {
     int numCities=numberVertics,i,j;
 
-    for(i=0;i<numCities;i++)
+    for(i=0; i<numCities; i++)
     {
         arr[i]=i;
         //cout<<"arr is "<<i<<"\n";
     }
     int best,bestIndex;
-    for(i=1;i<numCities;i++)
+    for(i=1; i<numCities; i++)
     {
         best=INT_MAX;
-        for(j=i;j<numCities;j++)
+        for(j=i; j<numCities; j++)
         {
-            if(distance(i-1,j)<best)
+            if(Distance(i-1,j)<best)
             {
-                best=distance(i,j);
+                best=Distance(i,j);
                 bestIndex=j;
             }
         }
-        swapArr(i,bestIndex);
+        SwapArr(i,bestIndex);
     }
-    cities.clear();
-    for(i=1;i<numCities;i++)
-    {
-        cities.push_back(arr[i]);
-        finalOrder.push_back(arr[i]);
-    }
-
-    int nearestNeighbourTourLength=getTourLength();
-    return nearestNeighbourTourLength;
 }
 
-double getRandomNumber(double i,double j) //This function generates a random number between
+double GetRandomNumber(double i,double j) //This function generates a random number between
 {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     default_random_engine generator (seed);
@@ -171,27 +168,41 @@ double getRandomNumber(double i,double j) //This function generates a random num
     return double(distribution(generator));
 }
 
-void swap2(int i,int j)
+void SwapForVector(int i,int j, vector<int> cities)
 {
     vector<int>::iterator it=cities.begin();
     int temp=*(it+i);
     *(it+i)=*(it+j);
     *(it+j)=temp;
-
 }
 
-double getProbability(int difference,double temperature) //This function finds the probability of how bad the new solution is
+
+double GetProbability(int difference,double temperature) //This function finds the probability of how bad the new solution is
 {
     return exp(-1*difference/temperature);
 }
 
+void PrintPath(vector<int> path)
+{
+    cout << "The best path found:\n";
+    int length = path.size();
+    for(int i = 0; i<length; i++)
+    {
+        cout << path[i] + 1;
+        if(i!=length-1)
+        {
+            cout << " -> ";
+        }
+    }
+    cout << "\n";
+}
+
 int main()
 {
-    int rs;
-    vector<int>::iterator it,it2;
     LARGE_INTEGER freq, start, end;
-    vector<string> lines = readFileToArrayLines();
-    numberVertics = numberVerticsFromArrayLines(lines);
+
+    vector<string> lines = ReadFileToArrayLines();
+    numberVertics = NumberVerticsFromArrayLines(lines);
 
     graph = new int*[numberVertics];
     for(int i = 0; i < numberVertics; ++i)
@@ -200,77 +211,92 @@ int main()
 
     ReadMatrix(lines);
 
-        //Generate the initial city tour and get the  nearestNeighbourTourLength
-    int bestTourLength=getNearestNeighbourTour(); //start with a decent point
+    InitNearestNeighbourTour(); //start with a decent point
+    int numCities=numberVertics;
+    citiesOrder.clear();
+    finalOrder.clear();
+    for(int i=0; i<numCities; i++)
+    {
+        citiesOrder.push_back(arr[i]);
+    }
+    int bestTourLength=GetTourLength(citiesOrder);
+
 
     int mini=INT_MAX;
-    if(mini > bestTourLength ) mini=bestTourLength;
-    double temperature,coolingRate=0.9,absoluteTemperature=0.00001;
-    int position1=0,position2=0;
-    int newTourLength,difference;
-    std::fstream fs;
-    fs.open ("tspResults.txt", std::fstream::in | std::fstream::out );
+    if(mini > bestTourLength )
+        mini=bestTourLength;
 
-
-    QueryPerformanceFrequency(&freq);
-    QueryPerformanceCounter(&start);
-
-   // #pragma omp parallel for shared(bestTourLength, numberVertics, coolingRate) private(rs, temperature, newTourLength, mini, absoluteTemperature, position1, position2)
-    for(rs=0;rs<numberVertics*(numberVertics-1);rs++)
+    #pragma omp parallel default(none) \
+    num_threads(8) \
+    shared( mini, numberVertics, citiesOrder, bestTourLength, finalOrder, freq, start)
     {
-      //  cout << "liczba watkow" << omp_get_num_threads();
-        temperature=99999999999999999999999999999999999999999.0; //Initial Temperature
-        //cout<<"doing rs "<<rs<<"\n";
-        fs<<"[";
+        double temperature,coolingRate=0.9,absoluteTemperature = 0.00001;
+        vector<int>::iterator it,it2;
+        int position1=0,position2=0;
+        int newTourLength,difference;
 
-        #pragma omp parallel shared(bestTourLength, numberVertics, coolingRate)  private(temperature, newTourLength, mini, absoluteTemperature, position1, position2)
-        while(temperature > absoluteTemperature)
+        vector<int> copyCitiesOrder = citiesOrder;
+
+        #pragma omp single
         {
-            //cout<<"hi";
-            cout << "liczba watkow" << omp_get_num_threads();
 
-            position1=int(getRandomNumber(0,numberVertics-1));
-            position2=int(getRandomNumber(0,numberVertics-1));
-            while(position1==position2 or( (position1>numberVertics-2) or (position2>numberVertics-2)))
-            {
-                position1=int(getRandomNumber(0,numberVertics-2));
-                position2=int(getRandomNumber(0,numberVertics-2));
-
-            }
-            //cout<<"position1 is "<<position1<<" position2 is "<<position2<<"\n";
-            swap2(position1,position2);
-            it2=cities.begin();
-            if(position2 > position1)
-                random_shuffle(it2+position1,it2+position2);
-            newTourLength=getTourLength();
-            if(mini > newTourLength ) mini=newTourLength;
-            fs<<newTourLength<<",";
-            //cout<<"current tour length is "<<newTourLength<<" n bestTourLength is "<<bestTourLength<<"\n\n";
-            difference=newTourLength-bestTourLength;
-
-            if(difference <0 or (difference >0 and  getProbability(difference,temperature) > getRandomNumber(0,1)))
-            {
-                finalOrder.clear();
-
-                for(it=cities.begin();it!=cities.end();it++)
-                {
-                    finalOrder.push_back(*it);
-                }
-                bestTourLength=difference+bestTourLength;
-            }
-            temperature=temperature*coolingRate;
-
+            printf("Program jest wykonywany na %d watkach.\n",
+                   omp_get_num_threads());
+            QueryPerformanceFrequency(&freq);
+            QueryPerformanceCounter(&start);
         }
-        fs<<"]\n";
-        random_shuffle(cities.begin(),cities.end());
-        //cout<<"the best solution is "<<bestTourLength<<"\n";
-      }
-      QueryPerformanceCounter(&end);
-      double durationInSeconds = static_cast<double>(end.QuadPart - start.QuadPart) / freq.QuadPart;
 
-    cout<<durationInSeconds << "\n";
-      fs.close();
-    cout<<"the best solution is "<<bestTourLength<<"\n";
-    cout<<" the minimum solution found is  "<<mini<<"\n";
+        #pragma omp for
+        for(int rs=0; rs<numberVertics*(numberVertics-1); rs++)
+        {
+            temperature=99999999999999999999999999999999999999999.0; //Initial Temperature
+
+            while(temperature > absoluteTemperature)
+            {
+                position1=int(GetRandomNumber(0,numberVertics));
+                position2=int(GetRandomNumber(0,numberVertics));
+                while(position1==position2 or( (position1>numberVertics-1) or (position2>numberVertics-1)))
+                {
+                    position1=int(GetRandomNumber(0,numberVertics));
+                    position2=int(GetRandomNumber(0,numberVertics));
+                }
+
+                SwapForVector(position1,position2,copyCitiesOrder);
+                it2=copyCitiesOrder.begin();
+                if(position2 > position1)
+                    random_shuffle(it2+position1,it2+position2);
+                newTourLength=GetTourLength(copyCitiesOrder);
+
+                #pragma omp critical
+                {
+                    if(mini > newTourLength )
+                        mini=newTourLength;
+                    difference=newTourLength-bestTourLength;
+                    if(difference <0 or (difference >0 and  GetProbability(difference,temperature) > GetRandomNumber(0,1)))
+                    {
+                        finalOrder.clear();
+
+                        for(it=copyCitiesOrder.begin(); it!=copyCitiesOrder.end(); it++)
+                        {
+                            finalOrder.push_back(*it);
+                        }
+                        bestTourLength=difference+bestTourLength;
+                    }
+                }
+
+                temperature=temperature*coolingRate;
+
+            }
+            random_shuffle(copyCitiesOrder.begin(),copyCitiesOrder.end());
+        }
+    }
+
+    QueryPerformanceCounter(&end);
+    double durationInSeconds = static_cast<double>(end.QuadPart - start.QuadPart) / freq.QuadPart;
+
+    cout<<"Processing time " << durationInSeconds <<"\n";
+    cout<<"The best solution is "<<bestTourLength<<"\n";
+    PrintPath(finalOrder);
+    cout<<"The minimum solution found is  "<<mini<<"\n";
     return 0;
 }
