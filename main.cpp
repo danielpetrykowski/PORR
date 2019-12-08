@@ -11,11 +11,22 @@
 
 using namespace std;
 
+//-----------------------------------------------------------------------
+const double INIT_TEMPERATURE = 99999999999999999999999999999999999999999.0;
+const double COOLING_RATE = 0.9;
+const double ABSOLUTE_TEMPERATURE = 0.00000001;
+const string FAIL_PATH = "./netTest/net1.mat";
+const int NUM_THREADS = 8;
+
+
+//----------------------------------------------------------------------
+
 int** graph;
 int numberVertics;
 vector<int> citiesOrder;
 vector<int> finalOrder;
 int *arr;// arr is the array that stores the City order
+omp_lock_t my_lock;
 
 //Functions
 vector<string> ReadFileToArrayLines();
@@ -35,7 +46,7 @@ vector<string> ReadFileToArrayLines()
     // Read file
     vector<string> lines;
     fstream file;
-    file.open("./netTest/net1.mat", ios::in);
+    file.open(FAIL_PATH, ios::in);
     if (file.is_open())
     {
         string tp;
@@ -225,11 +236,13 @@ int main()
     if(mini > bestTourLength )
         mini=bestTourLength;
 
+
+    omp_init_lock(&my_lock);
     #pragma omp parallel default(none) \
-    num_threads(8) \
-    shared( mini, numberVertics, citiesOrder, bestTourLength, finalOrder, freq, start)
+    num_threads(NUM_THREADS) \
+    shared( mini, numberVertics, citiesOrder, bestTourLength, finalOrder, freq, start, my_lock)
     {
-        double temperature,coolingRate=0.9,absoluteTemperature = 0.00001;
+        double temperature;
         vector<int>::iterator it,it2;
         int position1=0,position2=0;
         int newTourLength,difference;
@@ -248,9 +261,12 @@ int main()
         #pragma omp for
         for(int rs=0; rs<numberVertics*(numberVertics-1); rs++)
         {
-            temperature=99999999999999999999999999999999999999999.0; //Initial Temperature
+            temperature = INIT_TEMPERATURE; //Initial Temperature
+            int bestTourLengthLoop = bestTourLength;
+            vector<int> bestOrderLoop;
+            bestOrderLoop.clear();
 
-            while(temperature > absoluteTemperature)
+            while(temperature > ABSOLUTE_TEMPERATURE)
             {
                 position1=int(GetRandomNumber(0,numberVertics));
                 position2=int(GetRandomNumber(0,numberVertics));
@@ -266,26 +282,47 @@ int main()
                     random_shuffle(it2+position1,it2+position2);
                 newTourLength=GetTourLength(copyCitiesOrder);
 
-                #pragma omp critical
+
+                if(mini > newTourLength )
+                    #pragma omp critical
                 {
                     if(mini > newTourLength )
                         mini=newTourLength;
-                    difference=newTourLength-bestTourLength;
-                    if(difference <0 or (difference >0 and  GetProbability(difference,temperature) > GetRandomNumber(0,1)))
-                    {
-                        finalOrder.clear();
-
-                        for(it=copyCitiesOrder.begin(); it!=copyCitiesOrder.end(); it++)
-                        {
-                            finalOrder.push_back(*it);
-                        }
-                        bestTourLength=difference+bestTourLength;
-                    }
                 }
 
-                temperature=temperature*coolingRate;
+                difference=newTourLength-bestTourLengthLoop;
+                double prob = GetProbability(difference,temperature);
+                double rand = GetRandomNumber(0,1);
 
+                if(difference <0 or (difference >0 and prob > rand))
+                {
+                    bestOrderLoop.clear();
+
+                    for(it=copyCitiesOrder.begin(); it!=copyCitiesOrder.end(); it++)
+                    {
+                        bestOrderLoop.push_back(*it);
+                    }
+                    bestTourLengthLoop=difference+bestTourLengthLoop;
+                }
+
+                temperature=temperature*COOLING_RATE;
             }
+
+            if(bestTourLength>bestTourLengthLoop)
+            {
+                omp_set_lock(&my_lock);
+                if(bestTourLength>bestTourLengthLoop)
+                {
+                    bestTourLength = bestTourLengthLoop;
+                    finalOrder.clear();
+                    for(it=bestOrderLoop.begin(); it!=bestOrderLoop.end(); it++)
+                    {
+                        finalOrder.push_back(*it);
+                    }
+                }
+                omp_unset_lock(&my_lock);
+            }
+
             random_shuffle(copyCitiesOrder.begin(),copyCitiesOrder.end());
         }
     }
