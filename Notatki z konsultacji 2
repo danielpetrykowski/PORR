@@ -1,0 +1,7 @@
+Drugi etap projektu: przy równoległej implementacji rozdzielić iteracje w pętli dla danej temperatury
+GPU: dobrać odpowiednią ziarnistość procesu, nie przesadzić ze skomplikowaniem zadań dla pojedynczego wątku,
+przesunąć pętlę for nieco "niżej"
+Wykonać n iteracji dla jednej, ustalonej temperatury - a potem kontynuować już tradycyjnie
+Zmniejszyć temperaturę początkową i dopuszczalną tolerancję dla rozwiązania
+
+Nazwiska autorów artykułu, który mamy przejrzeć: Dekers - Arg (?) Artz (?)
