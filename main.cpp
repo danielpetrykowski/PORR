@@ -16,7 +16,7 @@ const double INIT_TEMPERATURE = 99999999999999999999999999999999999999999.0;
 const double COOLING_RATE = 0.9;
 const double ABSOLUTE_TEMPERATURE = 0.00000001;
 const string FAIL_PATH = "./netTest/net1.mat";
-const int NUM_THREADS = 8;
+const int NUM_THREADS = 1;
 
 
 //----------------------------------------------------------------------
@@ -237,10 +237,6 @@ int main()
         mini=bestTourLength;
 
 
-    omp_init_lock(&my_lock);
-    #pragma omp parallel default(none) \
-    num_threads(NUM_THREADS) \
-    shared( mini, numberVertics, citiesOrder, bestTourLength, finalOrder, freq, start, my_lock)
     {
         double temperature;
         vector<int>::iterator it,it2;
@@ -249,16 +245,13 @@ int main()
 
         vector<int> copyCitiesOrder = citiesOrder;
 
-        #pragma omp single
         {
-
             printf("Program is executed on %d threads.\n",
                    omp_get_num_threads());
             QueryPerformanceFrequency(&freq);
             QueryPerformanceCounter(&start);
         }
 
-        #pragma omp for
         for(int rs=0; rs<numberVertics*(numberVertics-1); rs++)
         {
             temperature = INIT_TEMPERATURE; //Initial Temperature
@@ -284,7 +277,6 @@ int main()
 
 
                 if(mini > newTourLength )
-                    #pragma omp critical
                 {
                     if(mini > newTourLength )
                         mini=newTourLength;
@@ -310,7 +302,6 @@ int main()
 
             if(bestTourLength>bestTourLengthLoop)
             {
-                omp_set_lock(&my_lock);
                 if(bestTourLength>bestTourLengthLoop)
                 {
                     bestTourLength = bestTourLengthLoop;
@@ -320,7 +311,6 @@ int main()
                         finalOrder.push_back(*it);
                     }
                 }
-                omp_unset_lock(&my_lock);
             }
 
             random_shuffle(copyCitiesOrder.begin(),copyCitiesOrder.end());
