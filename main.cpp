@@ -24,9 +24,7 @@ const int NUM_THREADS = 1;
 int** graph;
 int numberVertics;
 vector<int> citiesOrder;
-vector<int> finalOrder;
 int *arr;// arr is the array that stores the City order
-omp_lock_t my_lock;
 
 //Functions
 vector<string> ReadFileToArrayLines();
@@ -222,108 +220,103 @@ int main()
     ReadMatrix(lines);
 
     InitNearestNeighbourTour(); //start with a decent point
-    int numCities=numberVertics;
     citiesOrder.clear();
-    finalOrder.clear();
-    for(int i=0; i<numCities; i++)
+    for(int i=0; i<numberVertics; i++)
     {
         citiesOrder.push_back(arr[i]);
     }
-    int bestTourLength=GetTourLength(citiesOrder);
+    int bestTourLengthLoop = GetTourLength(citiesOrder);
 
 
-    int mini=INT_MAX;
-    if(mini > bestTourLength )
-        mini=bestTourLength;
+    int globalMini = INT_MAX;
+    if(globalMini > bestTourLengthLoop )
+        globalMini = bestTourLengthLoop;
 
 
+
+    double temperature = INIT_TEMPERATURE; //Initial Temperature
+
+    int numberLoop = numberVertics*(numberVertics-1);
+
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&start);
+
+
+    while(temperature > ABSOLUTE_TEMPERATURE)
     {
-        double temperature;
-        vector<int>::iterator it,it2;
-        int position1=0,position2=0;
-        int newTourLength,difference;
 
-        vector<int> copyCitiesOrder = citiesOrder;
-
+        int newTourLength[numberLoop],difference;
+        vector<int> copyCitiesOrder[numberLoop];
+        for(int i=0; i<numberLoop; i++)
         {
-            printf("Program is executed on %d threads.\n",
-                   omp_get_num_threads());
-            QueryPerformanceFrequency(&freq);
-            QueryPerformanceCounter(&start);
+            copyCitiesOrder[i] = citiesOrder;
         }
 
-        for(int rs=0; rs<numberVertics*(numberVertics-1); rs++)
-        {
-            temperature = INIT_TEMPERATURE; //Initial Temperature
-            int bestTourLengthLoop = bestTourLength;
-            vector<int> bestOrderLoop;
-            bestOrderLoop.clear();
 
-            while(temperature > ABSOLUTE_TEMPERATURE)
+        for(int rs=0; rs<numberLoop; rs++)
+        {
+            int position1=0,position2=0;
+
+            position1=int(GetRandomNumber(0,numberVertics));
+            position2=int(GetRandomNumber(0,numberVertics));
+            while(position1==position2 or( (position1>numberVertics-1) or (position2>numberVertics-1)))
             {
                 position1=int(GetRandomNumber(0,numberVertics));
                 position2=int(GetRandomNumber(0,numberVertics));
-                while(position1==position2 or( (position1>numberVertics-1) or (position2>numberVertics-1)))
-                {
-                    position1=int(GetRandomNumber(0,numberVertics));
-                    position2=int(GetRandomNumber(0,numberVertics));
-                }
-
-                SwapForVector(position1,position2,copyCitiesOrder);
-                it2=copyCitiesOrder.begin();
-                if(position2 > position1)
-                    random_shuffle(it2+position1,it2+position2);
-                newTourLength=GetTourLength(copyCitiesOrder);
-
-
-                if(mini > newTourLength )
-                {
-                    if(mini > newTourLength )
-                        mini=newTourLength;
-                }
-
-                difference=newTourLength-bestTourLengthLoop;
-                double prob = GetProbability(difference,temperature);
-                double rand = GetRandomNumber(0,1);
-
-                if(difference <0 or (difference >0 and prob > rand))
-                {
-                    bestOrderLoop.clear();
-
-                    for(it=copyCitiesOrder.begin(); it!=copyCitiesOrder.end(); it++)
-                    {
-                        bestOrderLoop.push_back(*it);
-                    }
-                    bestTourLengthLoop=difference+bestTourLengthLoop;
-                }
-
-                temperature=temperature*COOLING_RATE;
             }
 
-            if(bestTourLength>bestTourLengthLoop)
-            {
-                if(bestTourLength>bestTourLengthLoop)
-                {
-                    bestTourLength = bestTourLengthLoop;
-                    finalOrder.clear();
-                    for(it=bestOrderLoop.begin(); it!=bestOrderLoop.end(); it++)
-                    {
-                        finalOrder.push_back(*it);
-                    }
-                }
-            }
+            SwapForVector(position1,position2,copyCitiesOrder[rs]);
+            vector<int>::iterator it2=copyCitiesOrder[rs].begin();
+            if(position2 > position1)
+                random_shuffle(it2+position1,it2+position2);
+            newTourLength[rs]=GetTourLength(copyCitiesOrder[rs]);
 
-            random_shuffle(copyCitiesOrder.begin(),copyCitiesOrder.end());
         }
+
+        int miniTourLengthLoopId = 0;
+        for(int i=1; i<numberLoop; i++)
+        {
+            if(newTourLength[miniTourLengthLoopId]>newTourLength[i])
+                miniTourLengthLoopId = i;
+        }
+
+
+        if(globalMini > newTourLength[miniTourLengthLoopId] )
+        {
+            if(globalMini > newTourLength[miniTourLengthLoopId] )
+                globalMini=newTourLength[miniTourLengthLoopId];
+        }
+
+        difference=newTourLength[miniTourLengthLoopId]-bestTourLengthLoop;
+        double prob = GetProbability(difference,temperature);
+        double rand = GetRandomNumber(0,1);
+
+        if(difference <0 or (difference >0 and prob > rand))
+        {
+            citiesOrder.clear();
+
+            for(vector<int>::iterator it=copyCitiesOrder[miniTourLengthLoopId].begin();
+                    it!=copyCitiesOrder[miniTourLengthLoopId].end();
+                    it++)
+            {
+                citiesOrder.push_back(*it);
+            }
+            bestTourLengthLoop=difference+bestTourLengthLoop;
+        }
+
+
+        temperature=temperature*COOLING_RATE;
+
     }
+
 
     QueryPerformanceCounter(&end);
     double durationInSeconds = static_cast<double>(end.QuadPart - start.QuadPart) / freq.QuadPart;
 
     cout<<"Processing time " << durationInSeconds <<"\n";
-    cout<<"The best solution is "<<bestTourLength<<"\n";
+    cout<<"The best solution is "<<bestTourLengthLoop<<"\n";
     cout << "The best path found:\n";
-    PrintPath(finalOrder);
-    cout<<"The minimum solution found is  "<<mini<<"\n";
+    PrintPath(citiesOrder);
+    cout<<"The minimum solution found is  "<<globalMini<<"\n";
     return 0;
 }
