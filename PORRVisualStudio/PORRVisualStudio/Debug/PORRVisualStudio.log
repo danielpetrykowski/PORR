@@ -1,0 +1,7 @@
+﻿  PORRVisualStudio.cpp
+D:\DanielPetrykowski\Documents\studia\PORR\PORR\PORRVisualStudio\PORRVisualStudio\PORRVisualStudio.cpp(173,16): warning C4244: "inicjowanie": konwersja z "_Rep" do "unsigned int", możliwa utrata danych
+D:\DanielPetrykowski\Documents\studia\PORR\PORR\PORRVisualStudio\PORRVisualStudio\PORRVisualStudio.cpp(173,16): warning C4244:         with
+D:\DanielPetrykowski\Documents\studia\PORR\PORR\PORRVisualStudio\PORRVisualStudio\PORRVisualStudio.cpp(173,16): warning C4244:         [
+D:\DanielPetrykowski\Documents\studia\PORR\PORR\PORRVisualStudio\PORRVisualStudio\PORRVisualStudio.cpp(173,16): warning C4244:             _Rep=std::chrono::system_clock::rep
+D:\DanielPetrykowski\Documents\studia\PORR\PORR\PORRVisualStudio\PORRVisualStudio\PORRVisualStudio.cpp(173,16): warning C4244:         ]
+  PORRVisualStudio.vcxproj -> D:\DanielPetrykowski\Documents\studia\PORR\PORR\PORRVisualStudio\Debug\PORRVisualStudio.exe
