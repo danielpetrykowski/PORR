@@ -9,6 +9,14 @@
 #include <climits>
 #include <omp.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <CL/cl.h>
+
+#define MAX_SOURCE_SIZE (0x100000)
+
+
 using namespace std;
 
 //-----------------------------------------------------------------------
@@ -21,7 +29,7 @@ const int NUM_THREADS = 1;
 
 //----------------------------------------------------------------------
 
-int** graph;
+int** graph; 
 int numberVertics;
 vector<int> citiesOrder;
 int* arr;// arr is the array that stores the City order
@@ -237,6 +245,17 @@ int main()
 	double temperature = INIT_TEMPERATURE; //Initial Temperature
 
 	int numberLoop = numberVertics * (numberVertics - 1);
+
+
+
+	//Konfiguracja OpenCL
+
+
+
+
+
+
+
 
 	QueryPerformanceFrequency(&freq);
 	QueryPerformanceCounter(&start);
