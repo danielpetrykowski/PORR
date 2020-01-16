@@ -18,9 +18,7 @@ __kernel void loop(int numberVertics, uint2 random, __global int* citis, __globa
 	random = result.y;
 	
 	position1 = result.x % numberVertics;
-	position2 = result.y % numberVertics;
-	printf("Pos1 %d %d\n", position1, position2);
-	
+	position2 = result.y % numberVertics;	
 	
 	
 	//Swap
@@ -51,7 +49,6 @@ __kernel void loop(int numberVertics, uint2 random, __global int* citis, __globa
 	//printf("%d\n", current);
 	distance += graph[current*numberVertics + start];
 	
-	
-	
+		
 	C[id] = distance; // A[id] * k;
 }

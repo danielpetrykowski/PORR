@@ -30,9 +30,10 @@ const int NUM_THREADS = 1;
 //----------------------------------------------------------------------
 
 int** graph; 
-int numberVertics;
+cl_int* graphOpenCL;
+cl_int numberVertics;
 vector<int> citiesOrder;
-int* arr;// arr is the array that stores the City order
+cl_int* citiesOrderOpenCL;// arr is the array that stores the City order
 
 //Functions
 vector<string> ReadFileToArrayLines();
@@ -125,9 +126,9 @@ int Distance(int city1, int city2)
 
 void SwapArr(int i, int j)
 {
-	int temp = arr[i];
-	arr[i] = arr[j];
-	arr[j] = temp;
+	int temp = citiesOrderOpenCL[i];
+	citiesOrderOpenCL[i] = citiesOrderOpenCL[j];
+	citiesOrderOpenCL[j] = temp;
 }
 
 int GetTourLength(vector<int> cities) //This function returns the tour length of the current order of cities
@@ -157,7 +158,7 @@ void InitNearestNeighbourTour() //puts the nearestNeighbourTour in the vector ci
 
 	for (i = 0; i < numCities; i++)
 	{
-		arr[i] = i;
+		citiesOrderOpenCL[i] = i;
 		//cout<<"arr is "<<i<<"\n";
 	}
 	int best, bestIndex;
@@ -173,6 +174,24 @@ void InitNearestNeighbourTour() //puts the nearestNeighbourTour in the vector ci
 			}
 		}
 		SwapArr(i, bestIndex);
+	}
+}
+
+void InitCitiesOrderOpenCL() {
+	for (int i = 0; i < numberVertics; i++) {
+		for (int j = 0;j < numberVertics;j++) {
+			graphOpenCL[i * numberVertics + j] = graph[j][i];
+		}
+	}
+}
+
+void InitCitiesOrder() {
+	citiesOrder.clear();
+
+	// Inicjalizacja vectora z kolejnoœci¹ odwiedzanych miast
+	for (int i = 0; i < numberVertics; i++)
+	{
+		citiesOrder.push_back(citiesOrderOpenCL[i]);
 	}
 }
 
@@ -215,24 +234,32 @@ void PrintPath(vector<int> path)
 
 int main()
 {
+	// Zmienne czasu
 	LARGE_INTEGER freq, start, end;
 
-	vector<string> lines = ReadFileToArrayLines();
-	numberVertics = NumberVerticsFromArrayLines(lines);
 
+	vector<string> lines = ReadFileToArrayLines();				// Czytanie pliku z grafem 
+	numberVertics = NumberVerticsFromArrayLines(lines);			// Liczba wierzcho³ków grafu
+
+	// Inicjalizacja tablicy przechowuj¹cej wagi przejazdu pomiêdzy miastami
 	graph = new int* [numberVertics];
 	for (int i = 0; i < numberVertics; ++i)
 		graph[i] = new int[numberVertics];
-	arr = new int[numberVertics];
 
+	// Inicjalizacja tablic przechowuj¹cej kolejnoœæ odwiedzanych miast
+	citiesOrderOpenCL = new int[numberVertics];		
+
+	//Inicjalizacja tablicy przekazywanje do bufora kernela
+	graphOpenCL = new cl_int[numberVertics * numberVertics];
+
+	// Czytanie grafu i zapisywanie do tablicy graph
 	ReadMatrix(lines);
 
-	InitNearestNeighbourTour(); //start with a decent point
-	citiesOrder.clear();
-	for (int i = 0; i < numberVertics; i++)
-	{
-		citiesOrder.push_back(arr[i]);
-	}
+	InitNearestNeighbourTour(); //pocz¹tkowe ustawienie kolejnoœci odwiedzanych miast i zapis ich do tablicy citiesOrderOpenCL
+	InitCitiesOrderOpenCL();
+	InitCitiesOrder();
+
+	// Pocz¹tkowa wartoœæ d³ugoœci œcie¿ki
 	int bestTourLengthLoop = GetTourLength(citiesOrder);
 
 
@@ -241,85 +268,188 @@ int main()
 		globalMini = bestTourLengthLoop;
 
 
-
 	double temperature = INIT_TEMPERATURE; //Initial Temperature
+
 
 	int numberLoop = numberVertics * (numberVertics - 1);
 
 
 
 	//Konfiguracja OpenCL
+	cl_int status; // CL_SUCCESS je¿eli ok, kod b³êdu wpp.
+	cl_uint num_platforms = 0;
+	// SprawdŸ liczbê platform OpenCL
+	status = clGetPlatformIDs(0, NULL, &num_platforms);
+	if (num_platforms == 0 || status != CL_SUCCESS) { return EXIT_FAILURE; }
+	// Pobierz identyfikatory platform
+	std::vector<cl_platform_id> platforms(num_platforms);
+	// Drugi raz clGetPlatformIDs, inne parametry
+	status = clGetPlatformIDs(num_platforms, &platforms.front(), NULL);
 
 
+	// Szukamy platformy z odpowiednim typem urz¹dzenia
+	const cl_device_type kDeviceType = CL_DEVICE_TYPE_GPU;
+	cl_device_id device = NULL; // Wystarczy nam pierwsze z brzegu urz¹dzenie
+	cl_platform_id platform = NULL;
+	bool found = false;
+	for (cl_uint i = 0; i < num_platforms && !found; ++i) {
+		cl_uint count = 0;
+		status = clGetDeviceIDs(platforms[i], kDeviceType, 1, &device, &count);
+		if (count == 1) { // OK, znaleŸliœmy
+			platform = platforms[i];
+			found = true;
+		}
+	}
+
+	char* profile = NULL;
+	size_t size;
+	clGetPlatformInfo(platform, CL_PLATFORM_VENDOR, NULL, profile, &size); // get size of profile char array
+	profile = (char*)malloc(size);
+	clGetPlatformInfo(platform, CL_PLATFORM_VENDOR, size, profile, NULL); // get profile char array
+	std::cout << profile << std::endl;
 
 
+	// Tworzymy kontekst obliczeniowy
+	const cl_context_properties prop[] = { // Parametry okreœlaj¹ce kontekst
+	CL_CONTEXT_PLATFORM, (cl_context_properties)platform, 0 }; // 0 -> znacznik koñca listy parametrów
 
+	cl_context context = clCreateContextFromType(prop, kDeviceType, NULL, NULL, &status);
+	if (status != CL_SUCCESS) {
+		std::cout << "Problem z tworzeniem kontekstu obliczeniowego. Kod b³êdu: "
+			<< status << std::endl;
+	}
+	// Tworzymy kolejkê poleceñ OpenCL
+	cl_command_queue cmd_queue = clCreateCommandQueue(context, device, 0, &status);
 
+	FILE* fp;
+	char* source_str;
+	size_t source_size;
+
+	fp = fopen("D:\\DanielPetrykowski\\Documents\\studia\\PORR\\PORR\\PORRVisualStudio\\vector_add_kernel.cl", "r");
+	if (!fp) {
+		fprintf(stderr, "Failed to load kernel.\n");
+		exit(1);
+	}
+	source_str = (char*)malloc(MAX_SOURCE_SIZE);
+	source_size = fread(source_str, 1, MAX_SOURCE_SIZE, fp);
+	fclose(fp);
+
+	// Tworzymy obiekt programu OpenCL
+	cl_program program = clCreateProgramWithSource(context, 1, (const char**)&source_str,
+		(const size_t*)&source_size, NULL);
+	status = clBuildProgram(program, 1, &device, NULL, NULL, NULL);
+	if (status != CL_SUCCESS) {
+		char log[1024] = {};
+		clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG,
+			1024, log, NULL);
+		std::cout << "build log:\n" << log << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	cl_kernel kernel = clCreateKernel(program, "loop", NULL);
 
 
 	QueryPerformanceFrequency(&freq);
 	QueryPerformanceCounter(&start);
 
-
+	// Start algorytmu symulowanego wyrza¿ania
 	while (temperature > ABSOLUTE_TEMPERATURE)
 	{
-
-		int* newTourLength = new int[numberLoop];
 		int difference;
-		vector<int>* copyCitiesOrder = new vector<int>[numberLoop];
-		for (int i = 0; i < numberLoop; i++)
-		{
-			copyCitiesOrder[i] = citiesOrder;
-		}
+
+		// Alokacja buforów na dane wejœciowe i wyniki obliczeñ kernela
+				// Bufor na macierz przechowuj¹ca dane odleg³oœci pomiêdzy miastami
+		cl_mem graphBuffor = clCreateBuffer(context, CL_MEM_READ_ONLY |
+			CL_MEM_COPY_HOST_PTR,
+			sizeof(cl_int) * numberVertics * numberVertics, graphOpenCL, NULL);
+		cl_mem citiesOrderInBuffor = clCreateBuffer(context, CL_MEM_READ_ONLY |
+			CL_MEM_COPY_HOST_PTR,
+			sizeof(cl_int) * numberVertics, citiesOrderOpenCL, NULL);
+				// Buffor na dane wyjœciowe - nowa d³ugoœæ œcie¿ki
+		cl_mem tourLengthBuffor = clCreateBuffer(context, CL_MEM_READ_WRITE,
+			sizeof(cl_int) * numberLoop, NULL, NULL);
+				// Bufor na dane wyjœciowe - nowa kolejnoœæ odwiedzanych miast
+		cl_mem citiesOrderOutBuffor = clCreateBuffer(context, CL_MEM_READ_WRITE,
+			sizeof(cl_int) * numberLoop * numberVertics, NULL, NULL);
 
 
-		for (int rs = 0; rs < numberLoop; rs++)
-		{
-			int position1 = 0, position2 = 0;
+		cl_uint2 random;
+		random.x = GetRandomNumber(0, 5000);
+		random.y = GetRandomNumber(0, 5000);
 
-			position1 = int(GetRandomNumber(0, numberVertics));
-			position2 = int(GetRandomNumber(0, numberVertics));
-			while (position1 == position2 or ((position1 > numberVertics - 1) or (position2 > numberVertics - 1)))
-			{
-				position1 = int(GetRandomNumber(0, numberVertics));
-				position2 = int(GetRandomNumber(0, numberVertics));
-			}
+		// Przeka¿ parametry dla kernela
+		clSetKernelArg(kernel, 0, sizeof(cl_int), (void*)&numberVertics);
+		clSetKernelArg(kernel, 1, sizeof(cl_uint2), (void*)&random);
+		clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&citiesOrderInBuffor);
+		clSetKernelArg(kernel, 3, sizeof(cl_mem), (void*)&graphBuffor);
+		clSetKernelArg(kernel, 4, sizeof(cl_mem), (void*)&tourLengthBuffor);
+		clSetKernelArg(kernel, 5, sizeof(cl_mem), (void*)&citiesOrderOutBuffor);
 
-			SwapForVector(position1, position2, copyCitiesOrder[rs]);
-			vector<int>::iterator it2 = copyCitiesOrder[rs].begin();
-			if (position2 > position1)
-				random_shuffle(it2 + position1, it2 + position2);
-			newTourLength[rs] = GetTourLength(copyCitiesOrder[rs]);
+		const int dimensions = 1;
+		// Definiujemy przestrzeñ indeksowania
+		size_t global_work_size[dimensions] = { numberLoop };
+		cl_event event;
+		status = clEnqueueNDRangeKernel(cmd_queue, kernel, dimensions, NULL,
+			global_work_size, NULL, 0, NULL, &event);
+		clWaitForEvents(1, &event);
+		// Kopiujemy wynik z pamiêci urz¹dzenia do pamiêci hosta
+		cl_int* tourLengthResult = new cl_int[numberLoop];
+		cl_int* citiesOrderOutResult = new cl_int[numberLoop * numberVertics];
+		status = clEnqueueReadBuffer(cmd_queue, tourLengthBuffor, CL_TRUE,
+			0, numberLoop * sizeof(cl_int), tourLengthResult, 0, NULL, NULL
+		);
+		status = clEnqueueReadBuffer(cmd_queue, citiesOrderOutBuffor, CL_TRUE,
+			0, numberLoop * numberVertics * sizeof(cl_int), citiesOrderOutResult, 0, NULL, NULL
+		);
 
-		}
+
+		//for (int rs = 0; rs < numberLoop; rs++)
+		//{
+		//	int position1 = 0, position2 = 0;
+
+		//	position1 = int(GetRandomNumber(0, numberVertics));
+		//	position2 = int(GetRandomNumber(0, numberVertics));
+		//	while (position1 == position2 or ((position1 > numberVertics - 1) or (position2 > numberVertics - 1)))
+		//	{
+		//		position1 = int(GetRandomNumber(0, numberVertics));
+		//		position2 = int(GetRandomNumber(0, numberVertics));
+		//	}
+
+		//	SwapForVector(position1, position2, copyCitiesOrder[rs]);
+		//	vector<int>::iterator it2 = copyCitiesOrder[rs].begin();
+		//	if (position2 > position1)
+		//		random_shuffle(it2 + position1, it2 + position2);
+		//	newTourLength[rs] = GetTourLength(copyCitiesOrder[rs]);
+
+		//}
 
 		int miniTourLengthLoopId = 0;
 		for (int i = 1; i < numberLoop; i++)
 		{
-			if (newTourLength[miniTourLengthLoopId] > newTourLength[i])
+			if (tourLengthResult[miniTourLengthLoopId] > tourLengthResult[i])
 				miniTourLengthLoopId = i;
 		}
 
 
-		if (globalMini > newTourLength[miniTourLengthLoopId])
+		if (globalMini > tourLengthResult[miniTourLengthLoopId])
 		{
-			globalMini = newTourLength[miniTourLengthLoopId];
+			globalMini = tourLengthResult[miniTourLengthLoopId];
 		}
 
-		difference = newTourLength[miniTourLengthLoopId] - bestTourLengthLoop;
+		difference = tourLengthResult[miniTourLengthLoopId] - bestTourLengthLoop;
 		double prob = GetProbability(difference, temperature);
 		double rand = GetRandomNumber(0, 1);
 
 		if (difference < 0 or (difference > 0 and prob > rand))
 		{
-			citiesOrder.clear();
-
-			for (vector<int>::iterator it = copyCitiesOrder[miniTourLengthLoopId].begin();
-				it != copyCitiesOrder[miniTourLengthLoopId].end();
-				it++)
-			{
-				citiesOrder.push_back(*it);
+			int id = 0;
+			for (int i = miniTourLengthLoopId * numberVertics; i < (miniTourLengthLoopId + 1) * numberVertics; i++) {
+				citiesOrderOpenCL[id] = citiesOrderOutResult[i];
+				//std::cout << citiesOrderOutResult[i];
+				id++;
 			}
+
+			InitCitiesOrder();
 			bestTourLengthLoop = difference + bestTourLengthLoop;
 		}
 
