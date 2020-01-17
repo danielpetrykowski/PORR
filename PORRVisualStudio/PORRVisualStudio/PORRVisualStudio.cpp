@@ -15,7 +15,7 @@ using namespace std;
 const double INIT_TEMPERATURE = 99999999999999999999999999999999999999999.0;
 const double COOLING_RATE = 0.9;
 const double ABSOLUTE_TEMPERATURE = 0.00000001;
-const string FAIL_PATH = "C:/Users/Daniel Petrykowski/source/repos/test/netTest/net1.mat";
+const string FAIL_PATH = "D:/DanielPetrykowski/Documents/studia/PORR/PORR/netTest/net10.mat";
 const int NUM_THREADS = 1;
 
 
@@ -260,16 +260,16 @@ int main()
 
 			position1 = int(GetRandomNumber(0, numberVertics));
 			position2 = int(GetRandomNumber(0, numberVertics));
-			while (position1 == position2 or ((position1 > numberVertics - 1) or (position2 > numberVertics - 1)))
-			{
-				position1 = int(GetRandomNumber(0, numberVertics));
-				position2 = int(GetRandomNumber(0, numberVertics));
-			}
+			//while (position1 == position2 or ((position1 > numberVertics - 1) or (position2 > numberVertics - 1)))
+			//{
+			//	position1 = int(GetRandomNumber(0, numberVertics));
+			//	position2 = int(GetRandomNumber(0, numberVertics));
+			//}
 
 			SwapForVector(position1, position2, copyCitiesOrder[rs]);
 			vector<int>::iterator it2 = copyCitiesOrder[rs].begin();
-			if (position2 > position1)
-				random_shuffle(it2 + position1, it2 + position2);
+			//if (position2 > position1)
+			//	random_shuffle(it2 + position1, it2 + position2);
 			newTourLength[rs] = GetTourLength(copyCitiesOrder[rs]);
 
 		}
