@@ -23,7 +23,7 @@ using namespace std;
 const double INIT_TEMPERATURE = 99999999999999999999999999999999999999999.0;
 const double COOLING_RATE = 0.9;
 const double ABSOLUTE_TEMPERATURE = 0.00000001;
-const string FAIL_PATH = "C:/Users/Daniel Petrykowski/source/repos/test/netTest/net1.mat";
+const string FAIL_PATH = "D:/DanielPetrykowski/Documents/studia/PORR/PORR/netTest/net2.txt";
 const int NUM_THREADS = 1;
 
 
@@ -271,7 +271,7 @@ int main()
 	double temperature = INIT_TEMPERATURE; //Initial Temperature
 
 
-	int numberLoop = numberVertics * (numberVertics - 1);
+	int numberLoop = numberVertics* (numberVertics - 1);
 
 
 
@@ -346,7 +346,10 @@ int main()
 		return EXIT_FAILURE;
 	}
 
-	cl_kernel kernel = clCreateKernel(program, "loop", NULL);
+	
+	cl_int* tourLengthResult = new cl_int[numberLoop];
+	cl_int* citiesOrderOutResult = new cl_int[numberLoop * numberVertics];
+	cl_uint2 random;
 
 
 	QueryPerformanceFrequency(&freq);
@@ -357,6 +360,14 @@ int main()
 	{
 		int difference;
 
+/*		std::cout << " in city: ";
+		for (int i = 0;i < numberVertics; i++) {
+			std::cout << citiesOrderOpenCL[i] << " ";
+		}
+		std::cout << std::endl <<std::endl;*/
+
+
+		cl_kernel kernel = clCreateKernel(program, "loop", NULL);
 		// Alokacja buforów na dane wejœciowe i wyniki obliczeñ kernela
 				// Bufor na macierz przechowuj¹ca dane odleg³oœci pomiêdzy miastami
 		cl_mem graphBuffor = clCreateBuffer(context, CL_MEM_READ_ONLY |
@@ -372,8 +383,7 @@ int main()
 		cl_mem citiesOrderOutBuffor = clCreateBuffer(context, CL_MEM_READ_WRITE,
 			sizeof(cl_int) * numberLoop * numberVertics, NULL, NULL);
 
-
-		cl_uint2 random;
+		
 		random.x = GetRandomNumber(0, 5000);
 		random.y = GetRandomNumber(0, 5000);
 
@@ -393,14 +403,15 @@ int main()
 			global_work_size, NULL, 0, NULL, &event);
 		clWaitForEvents(1, &event);
 		// Kopiujemy wynik z pamiêci urz¹dzenia do pamiêci hosta
-		cl_int* tourLengthResult = new cl_int[numberLoop];
-		cl_int* citiesOrderOutResult = new cl_int[numberLoop * numberVertics];
 		status = clEnqueueReadBuffer(cmd_queue, tourLengthBuffor, CL_TRUE,
 			0, numberLoop * sizeof(cl_int), tourLengthResult, 0, NULL, NULL
 		);
 		status = clEnqueueReadBuffer(cmd_queue, citiesOrderOutBuffor, CL_TRUE,
 			0, numberLoop * numberVertics * sizeof(cl_int), citiesOrderOutResult, 0, NULL, NULL
 		);
+
+		// Minimalna d³ugoœæ œcie¿ki 
+
 
 
 		//for (int rs = 0; rs < numberLoop; rs++)
@@ -440,14 +451,24 @@ int main()
 		double prob = GetProbability(difference, temperature);
 		double rand = GetRandomNumber(0, 1);
 
+		//for (int i = 0;i < numberLoop;i++) {
+		//	for (int j = 0;j < numberVertics;j++) {
+		//		std::cout << citiesOrderOutResult[i * numberVertics + j];
+		//	}
+		//	std::cout << "  ->  " << tourLengthResult[i];
+		//	std::cout << std::endl;
+		//}
+
 		if (difference < 0 or (difference > 0 and prob > rand))
 		{
 			int id = 0;
+		//	std::cout << "out city: ";
 			for (int i = miniTourLengthLoopId * numberVertics; i < (miniTourLengthLoopId + 1) * numberVertics; i++) {
 				citiesOrderOpenCL[id] = citiesOrderOutResult[i];
-				//std::cout << citiesOrderOutResult[i];
+			//	std::cout << citiesOrderOutResult[i] << " ";
 				id++;
 			}
+		//	std::cout << std::endl;
 
 			InitCitiesOrder();
 			bestTourLengthLoop = difference + bestTourLengthLoop;
@@ -456,8 +477,20 @@ int main()
 
 		temperature = temperature * COOLING_RATE;
 
+
+		clFinish(cmd_queue); // Czekamy na zakoñczenie zadañ
+// Zwalniamy pamiêæ
+		clReleaseKernel(kernel);
+		clReleaseMemObject(tourLengthBuffor);
+		clReleaseMemObject(citiesOrderOutBuffor);
+		clReleaseMemObject(citiesOrderInBuffor);
+		clReleaseMemObject(graphBuffor);
+
 	}
 
+	clReleaseProgram(program);
+	clReleaseCommandQueue(cmd_queue);
+	clReleaseContext(context);
 
 	QueryPerformanceCounter(&end);
 	double durationInSeconds = static_cast<double>(end.QuadPart - start.QuadPart) / freq.QuadPart;

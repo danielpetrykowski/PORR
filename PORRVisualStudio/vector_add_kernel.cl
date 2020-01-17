@@ -1,4 +1,4 @@
-__kernel void loop(int numberVertics, uint2 random, __global int* citis, __global int* graph, __global uint2* C, __global int* citiesOrder) {
+__kernel void loop(int numberVertics, uint2 random, __global int* citis, __global int* graph, __global int* C, __global int* citiesOrder) {
 	int position1=0,position2=0;
 	int id = get_global_id(0);
 	
@@ -32,7 +32,7 @@ __kernel void loop(int numberVertics, uint2 random, __global int* citis, __globa
 		}	
 	} 
 	
-	
+	//printf("%d\n", id);
 	//Calculate distance
 	int distance = 0;
 	int start = citiesOrder[0 + id*numberVertics];
@@ -48,6 +48,7 @@ __kernel void loop(int numberVertics, uint2 random, __global int* citis, __globa
 	}
 	//printf("%d\n", current);
 	distance += graph[current*numberVertics + start];
+	//printf("%d\n", distance);
 	
 		
 	C[id] = distance; // A[id] * k;
