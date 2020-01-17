@@ -238,6 +238,10 @@ int main()
 	double temperature = INIT_TEMPERATURE; //Initial Temperature
 
 	int numberLoop = numberVertics * (numberVertics - 1);
+	int* newTourLength = new int[numberLoop];
+	int difference;
+	vector<int>* copyCitiesOrder = new vector<int>[numberLoop];
+
 
 	QueryPerformanceFrequency(&freq);
 	QueryPerformanceCounter(&start);
@@ -245,10 +249,6 @@ int main()
 
 	while (temperature > ABSOLUTE_TEMPERATURE)
 	{
-
-		int* newTourLength = new int[numberLoop];
-		int difference;
-		vector<int>* copyCitiesOrder = new vector<int>[numberLoop];
 		for (int i = 0; i < numberLoop; i++)
 		{
 			copyCitiesOrder[i] = citiesOrder;
