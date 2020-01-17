@@ -35,7 +35,7 @@ void SwapArr(int i, int j);
 int GetTourLength(vector<int> cities);
 void InitNearestNeighbourTour();
 double GetRandomNumber(double i, double j);
-void SwapForVector(int i, int j, vector<int> cities);
+vector<int> SwapForVector(int i, int j, vector<int> cities);
 double GetProbability(int difference, double temperature);
 void PrintPath(vector<int> path);
 
@@ -177,12 +177,13 @@ double GetRandomNumber(double i, double j) //This function generates a random nu
 	return double(distribution(generator));
 }
 
-void SwapForVector(int i, int j, vector<int> cities)
+vector<int> SwapForVector(int i, int j, vector<int> cities)
 {
 	vector<int>::iterator it = cities.begin();
 	int temp = *(it + i);
 	*(it + i) = *(it + j);
 	*(it + j) = temp;
+	return cities;
 }
 
 
@@ -266,8 +267,8 @@ int main()
 			//	position2 = int(GetRandomNumber(0, numberVertics));
 			//}
 
-			SwapForVector(position1, position2, copyCitiesOrder[rs]);
-			vector<int>::iterator it2 = copyCitiesOrder[rs].begin();
+			copyCitiesOrder[rs] = SwapForVector(position1, position2, copyCitiesOrder[rs]);
+			//vector<int>::iterator it2 = copyCitiesOrder[rs].begin();
 			//if (position2 > position1)
 			//	random_shuffle(it2 + position1, it2 + position2);
 			newTourLength[rs] = GetTourLength(copyCitiesOrder[rs]);
