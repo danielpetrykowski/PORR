@@ -12,7 +12,7 @@ __kernel void loop(int numberVertics, uint2 random, __global int* citis, __globa
 	
 	
 	//Random 2
-	seed = random.x + id;
+	seed = random.y + id;
 	t = seed ^ (seed << 11);
 	result.y = random.y ^ (random.y >> 19) ^ (t ^ (t >> 8));
 	random = result.y;
@@ -31,6 +31,19 @@ __kernel void loop(int numberVertics, uint2 random, __global int* citis, __globa
 			citiesOrder[i + id*numberVertics] = citis[i];
 		}	
 	} 
+	
+	if(position2>position1){
+		for(int i = position1 + 1; i<= position2;i++){
+			seed = random.x + id + i;
+			t = seed ^ (seed << 11);  
+			uint rand = random.y ^ (random.y >> 19) ^ (t ^ (t >> 8));
+			uint pos = 1 + position1 + rand % (position2 - position1);
+			
+			int tmp = citiesOrder[i + id*numberVertics];
+			citiesOrder[i + id*numberVertics] = citiesOrder[pos + id*numberVertics];
+			citiesOrder[i + id*numberVertics] = tmp;
+		}
+	}
 	
 	//printf("%d\n", id);
 	//Calculate distance

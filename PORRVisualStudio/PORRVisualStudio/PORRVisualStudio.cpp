@@ -23,7 +23,7 @@ using namespace std;
 const double INIT_TEMPERATURE = 99999999999999999999999999999999999999999.0;
 const double COOLING_RATE = 0.9;
 const double ABSOLUTE_TEMPERATURE = 0.00000001;
-const string FAIL_PATH = "D:/DanielPetrykowski/Documents/studia/PORR/PORR/netTest/net2.txt";
+const string FAIL_PATH = "D:/DanielPetrykowski/Documents/studia/PORR/PORR/netTest/net2-random.txt";
 const int NUM_THREADS = 1;
 
 
@@ -325,7 +325,7 @@ int main()
 	char* source_str;
 	size_t source_size;
 
-	fp = fopen("D:\\DanielPetrykowski\\Documents\\studia\\PORR\\PORR\\PORRVisualStudio\\vector_add_kernel.cl", "r");
+	fp = fopen("D:\\DanielPetrykowski\\Documents\\studia\\PORR\\PORR\\PORRVisualStudio\\kernel.cl", "r");
 	if (!fp) {
 		fprintf(stderr, "Failed to load kernel.\n");
 		exit(1);
@@ -350,7 +350,11 @@ int main()
 	cl_int* tourLengthResult = new cl_int[numberLoop];
 	cl_int* citiesOrderOutResult = new cl_int[numberLoop * numberVertics];
 	cl_uint2 random;
-
+	cl_kernel kernel;
+	cl_mem graphBuffor;
+	cl_mem citiesOrderInBuffor;
+	cl_mem tourLengthBuffor;
+	cl_mem citiesOrderOutBuffor;
 
 	QueryPerformanceFrequency(&freq);
 	QueryPerformanceCounter(&start);
@@ -367,20 +371,20 @@ int main()
 		std::cout << std::endl <<std::endl;*/
 
 
-		cl_kernel kernel = clCreateKernel(program, "loop", NULL);
+		kernel = clCreateKernel(program, "loop", NULL);
 		// Alokacja buforów na dane wejœciowe i wyniki obliczeñ kernela
 				// Bufor na macierz przechowuj¹ca dane odleg³oœci pomiêdzy miastami
-		cl_mem graphBuffor = clCreateBuffer(context, CL_MEM_READ_ONLY |
+		graphBuffor = clCreateBuffer(context, CL_MEM_READ_ONLY |
 			CL_MEM_COPY_HOST_PTR,
 			sizeof(cl_int) * numberVertics * numberVertics, graphOpenCL, NULL);
-		cl_mem citiesOrderInBuffor = clCreateBuffer(context, CL_MEM_READ_ONLY |
+		citiesOrderInBuffor = clCreateBuffer(context, CL_MEM_READ_ONLY |
 			CL_MEM_COPY_HOST_PTR,
 			sizeof(cl_int) * numberVertics, citiesOrderOpenCL, NULL);
 				// Buffor na dane wyjœciowe - nowa d³ugoœæ œcie¿ki
-		cl_mem tourLengthBuffor = clCreateBuffer(context, CL_MEM_READ_WRITE,
+		tourLengthBuffor = clCreateBuffer(context, CL_MEM_READ_WRITE,
 			sizeof(cl_int) * numberLoop, NULL, NULL);
 				// Bufor na dane wyjœciowe - nowa kolejnoœæ odwiedzanych miast
-		cl_mem citiesOrderOutBuffor = clCreateBuffer(context, CL_MEM_READ_WRITE,
+		citiesOrderOutBuffor = clCreateBuffer(context, CL_MEM_READ_WRITE,
 			sizeof(cl_int) * numberLoop * numberVertics, NULL, NULL);
 
 		
